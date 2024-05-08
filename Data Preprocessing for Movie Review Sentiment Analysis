@@ -1,0 +1,54 @@
+import nltk
+
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+import pandas as pd
+import re
+import string
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.model_selection import train_test_split
+
+# Load the dataset
+file_path = '/YOUR/PATH/TO/DATA/IMDB Dataset.csv'
+df = pd.read_csv(file_path)
+
+# Initialize necessary tools
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+# Define a function to clean individual reviews
+def clean_review(text):
+    # Remove HTML tags
+    text = re.sub(r'<.*?>', '', text)
+    # Lowercase the text
+    text = text.lower()
+    # Remove punctuation and digits
+    text = re.sub(f"[{string.punctuation}\d]", "", text)
+    # Tokenize and remove stop words
+    tokens = [word for word in text.split() if word not in stop_words]
+    # Lemmatize each token
+    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    # Reconstruct the text
+    return " ".join(tokens)
+
+# Apply the cleaning function to all reviews
+df['clean_review'] = df['review'].apply(clean_review)
+
+# Map sentiment to numerical values (1 = positive, 0 = negative)
+df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
+
+# Split the dataset into training and testing sets (80-20 ratio)
+X_train, X_test, y_train, y_test = train_test_split(df['clean_review'], df['sentiment'], test_size=0.2, random_state=42)
+
+# Display preprocessed dataset info
+print(f"Training set: {len(X_train)} samples")
+print(f"Test set: {len(X_test)} samples")
+
+# Optional: Save preprocessed data to new files for model training
+train_data = pd.DataFrame({'review': X_train, 'sentiment': y_train})
+test_data = pd.DataFrame({'review': X_test, 'sentiment': y_test})
+
+train_data.to_csv('IMDB_train_preprocessed.csv', index=False)
+test_data.to_csv('IMDB_test_preprocessed.csv', index=False)
