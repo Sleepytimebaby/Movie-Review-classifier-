@@ -2,7 +2,7 @@
 
 This project analyzes the sentiment of film reviews from the IMDB dataset. Using recurrent neural networks (RNNs) with LSTM layers, the model classifies reviews as positive or negative. The project involves data preprocessing and training a binary classification model to accurately predict the sentiment of new reviews.
 
-The data set can be found on Kaggle @Sleepytimebaby. 
+The data set can be found on Kaggle https://www.kaggle.com/datasets/vishakhdapat/imdb-movie-reviews. 
 
 Step 1 - Data Preprocessing for Movie Review Sentiment Analysis
 
@@ -37,4 +37,5 @@ Steps Taken:
 
     Exporting Results:
         The preprocessed training and testing sets were saved to new CSV files for future model training and evaluation.
+
 
