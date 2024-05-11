@@ -1,0 +1,66 @@
+import torch
+import torch.nn as nn
+import pickle
+from sklearn.feature_extraction.text import TfidfVectorizer
+import re
+import string
+
+# Load the TF-IDF vectorizer
+with open('/PATH/TO/YOUR/VECTORIZER', 'rb') as f:
+    vectorizer = pickle.load(f)
+
+# Define the same LSTM model class as used in training
+class SentimentLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(SentimentLSTM, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        h0 = torch.zeros(1, x.size(0), 100)
+        c0 = torch.zeros(1, x.size(0), 100)
+        out, _ = self.lstm(x.unsqueeze(1), (h0, c0))
+        out = self.fc(out[:, -1, :])
+        return out
+
+# Initialize the model
+input_size = 5000  # Size of TF-IDF vectors
+hidden_size = 100
+num_classes = 2
+model = SentimentLSTM(input_size, hidden_size, num_classes)
+
+# Load the saved model state
+model_path = '/PATH/TO/YOUR/MODEL'
+model.load_state_dict(torch.load(model_path))
+model.eval()
+
+# Function to clean and preprocess the input review
+def clean_review(text):
+    # Remove HTML tags
+    text = re.sub(r'<.*?>', '', text)
+    # Lowercase the text
+    text = text.lower()
+    # Remove punctuation and digits
+    text = re.sub(f"[{string.punctuation}\d]", "", text)
+    # Tokenize and remove stop words (TF-IDF will handle tokenization)
+    tokens = text.split()
+    # Reconstruct the text
+    return " ".join(tokens)
+
+# Function to classify user input review
+def classify_review():
+    # Get user input
+    user_review = input("Enter a movie review: ")
+    cleaned_review = clean_review(user_review)
+    review_vector = vectorizer.transform([cleaned_review]).toarray()
+    review_tensor = torch.tensor(review_vector, dtype=torch.float32)
+
+    # Make a prediction
+    with torch.no_grad():
+        output = model(review_tensor)
+        _, predicted = torch.max(output, 1)
+        sentiment = "You enjoyed the movie." if predicted.item() == 1 else "You did not like the movie."
+        print(f"Sentiment: {sentiment}")
+
+# Start classification
+classify_review()
