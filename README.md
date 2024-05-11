@@ -4,38 +4,305 @@ This project analyzes the sentiment of film reviews from the IMDB dataset. Using
 
 The dataset can be found on Kaggle https://www.kaggle.com/datasets/vishakhdapat/imdb-movie-reviews. 
 
-Step 1 - Data Preprocessing for Movie Review Sentiment Analysis
+Step 1: Preprocessing the IMDB Dataset
 
-Objective:
-The goal is to preprocess the IMDb movie review dataset to enable accurate training and testing of a sentiment analysis model. Our target is to classify reviews as either positive or negative using natural language processing techniques.
+In this step, we clean, lemmatize, and split the dataset into training and testing sets for later use in the sentiment analysis model.
 
-Steps Taken:
+Import Libraries:
+        NLTK: Natural language processing tools, including stop words and lemmatization.
+        Pandas: For efficient data manipulation and reading/writing CSV files.
+        Re and String: For text preprocessing and cleaning.
+        Scikit-learn's Train-Test Split: For splitting data into training and testing sets.
 
-    Data Import:
-        The IMDb movie review dataset was imported from a CSV file containing two columns: review and sentiment.
+    import nltk
 
-    Setup NLTK Resources:
-        The necessary stopwords and wordnet datasets were downloaded via NLTK to facilitate text cleaning.
+    nltk.download('stopwords')
+    nltk.download('wordnet')
 
-    Text Cleaning Process:
-        A function named clean_review was developed to handle the following tasks:
-            Remove HTML Tags: Regular expressions stripped out any HTML markup present in the reviews.
-            Convert to Lowercase: All text was converted to lowercase to standardize the data.
-            Remove Punctuation and Digits: A regular expression filtered out punctuation marks and numbers.
-            Remove Stopwords: Stopwords like "the" and "is" were filtered out using NLTK's stopwords corpus.
-            Lemmatization: Words were reduced to their base forms using the WordNet lemmatizer, improving normalization.
+    import pandas as pd
+    import re
+    import string
+    from nltk.corpus import stopwords
+    from nltk.stem import WordNetLemmatizer
+    from sklearn.model_selection import train_test_split
 
-    Apply Cleaning to Dataset:
-        The clean_review function was applied to each review in the dataset to generate a new clean_review column containing cleaned text.
+Load the Dataset:
 
-    Label Mapping:
-        The sentiment column was mapped to numerical values: 1 for positive, 0 for negative.
+Read the CSV file containing the IMDB movie reviews into a DataFrame.
 
-    Data Splitting:
-        The dataset was split into training and testing sets in an 80-20 ratio.
-        The training set contains 40,000 samples, while the testing set has 10,000 samples.
+    file_path = '/PATH/TO/YOUR/DATA/'
+    df = pd.read_csv(file_path)
 
-    Exporting Results:
-        The preprocessed training and testing sets were saved to new CSV files for future model training and evaluation.
+Initialize Preprocessing Tools:
+
+Stop Words: A set of common words to be removed.
+Lemmatizer: For reducing words to their root forms.
+
+    stop_words = set(stopwords.words('english'))
+    lemmatizer = WordNetLemmatizer()
+
+Define Review Cleaning Function:
+
+This function removes HTML tags, punctuation, and digits, converts to lowercase, filters out stop words, and lemmatizes the remaining tokens.
+
+    def clean_review(text):
+        text = re.sub(r'<.*?>', '', text)  # Remove HTML tags
+        text = text.lower()  # Convert to lowercase
+        text = re.sub(f"[{string.punctuation}\d]", "", text)  # Remove punctuation and digits
+        tokens = [word for word in text.split() if word not in stop_words]  # Remove stop words
+        tokens = [lemmatizer.lemmatize(word) for word in tokens]  # Lemmatize
+        return " ".join(tokens)
+
+Apply Cleaning Function to Reviews:
+
+Use the cleaning function to process all reviews and store the results in a new column.
+
+    df['clean_review'] = df['review'].apply(clean_review)
+
+Map Sentiments to Numerical Values:
+
+Convert "positive" and "negative" sentiments to 1 and 0, respectively, for compatibility with machine learning models.
+
+    df['sentiment'] = df['sentiment'].map({'positive': 1, 'negative': 0})
+
+Split Dataset into Training and Testing Sets:
+
+Create an 80-20 split of the data for training and evaluation.
+
+    X_train, X_test, y_train, y_test = train_test_split(df['clean_review'], df['sentiment'], test_size=0.2, random_state=42)
+
+Display the sizes of the training and test sets.
+
+    print(f"Training set: {len(X_train)} samples")
+    print(f"Test set: {len(X_test)} samples")
+
+Save Preprocessed Data:
+
+Save the cleaned and split data into CSV files for model training and testing.
+
+    train_data = pd.DataFrame({'review': X_train, 'sentiment': y_train})
+    test_data = pd.DataFrame({'review': X_test, 'sentiment': y_test})
+
+    train_data.to_csv('IMDB_train_preprocessed.csv', index=False)
+    test_data.to_csv('IMDB_test_preprocessed.csv', index=False)
+
+
+Step 2: Feature Extraction and Model Training
+
+This step involves converting text data into numerical features using TF-IDF vectorization, training an LSTM model to classify sentiments, and saving the trained model for future use. Below is a detailed breakdown of the script.
+
+Import Necessary Libraries:
+
+Pandas: For data manipulation and loading CSV files.
+Sklearn's TfidfVectorizer: For converting text data to TF-IDF features.
+Torch: For creating and training the neural network.
+Pickle: For saving the TF-IDF vectorizer.
+
+    import pandas as pd
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    from torch.utils.data import DataLoader, TensorDataset
+    import pickle
+
+Load Preprocessed Data:
+
+The script reads the training and test datasets from CSV files.
+
+    train_data = pd.read_csv('/PATH/TO/YOUR/TRAINING/DATA')
+    test_data = pd.read_csv('/PATH/TO/YOUR/TEST/DATA')
+
+Feature Extraction Using TF-IDF:
+
+Convert the text reviews into TF-IDF vectors.
+Limit the number of features to 5000 for simplicity and efficiency.
+Save the vectorizer to a file for future use.
+
+    vectorizer = TfidfVectorizer(max_features=5000)
+    X_train = vectorizer.fit_transform(train_data['review']).toarray()
+    X_test = vectorizer.transform(test_data['review']).toarray()
+
+    with open('tfidf_vectorizer.pkl', 'wb') as f:
+        pickle.dump(vectorizer, f)
+
+Convert Data to PyTorch Tensors:
+
+Transform the TF-IDF vectors and sentiment labels into PyTorch tensors for compatibility with the neural network.
+
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+    y_train_tensor = torch.tensor(train_data['sentiment'].values, dtype=torch.long)
+    y_test_tensor = torch.tensor(test_data['sentiment'].values, dtype=torch.long)
+
+Create DataLoader for Batching:
+
+Organize data into batches using DataLoader to optimize training efficiency.
+
+    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+    test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+
+Define an LSTM Model:
+
+The LSTM model processes sequences and outputs sentiment predictions.
+The model consists of an LSTM layer followed by a fully connected layer.
+
+    class SentimentLSTM(nn.Module):
+        def __init__(self, input_size, hidden_size, num_classes):
+            super(SentimentLSTM, self).__init__()
+            self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+            self.fc = nn.Linear(hidden_size, num_classes)
+
+        def forward(self, x):
+            h0 = torch.zeros(1, x.size(0), 100)
+            c0 = torch.zeros(1, x.size(0), 100)
+            out, _ = self.lstm(x.unsqueeze(1), (h0, c0))
+            out = self.fc(out[:, -1, :])
+            return out
+
+Initialize Model, Loss Function, and Optimizer:
+
+Define the model's input size, hidden size, and number of output classes.
+Use CrossEntropyLoss for classification and Adam optimizer for training.
+
+    input_size = 5000
+    hidden_size = 100
+    num_classes = 2
+    model = SentimentLSTM(input_size, hidden_size, num_classes)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+Training Loop:
+
+Train the model for 20 epochs, adjusting weights to minimize loss.
+
+
+    num_epochs = 20
+    for epoch in range(num_epochs):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}")
+
+Evaluation:
+
+Test the model on the test dataset and calculate accuracy.
+
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    accuracy = 100 * correct / total
+    print(f'Test Accuracy: {accuracy:.2f}%')
+
+Save the Trained Model:
+
+Save the trained model's state dictionary for later use.
+
+    torch.save(model.state_dict(), '/PATH/TO/YOUR/MODEL')
+
+Step 3: Model Initialization and Real-Time Classification
+
+This step involves loading the pre-trained LSTM model and the TF-IDF vectorizer, cleaning user-input reviews, transforming them into numerical vectors, and predicting the sentiment. Below is the detailed explanation of the script.
+
+Import Necessary Libraries:
+
+Torch: For loading the pre-trained model and handling tensor operations.
+Pickle: For loading the saved TF-IDF vectorizer.
+Sklearn's TfidfVectorizer: For transforming text data to TF-IDF features.
+Re and String: For text cleaning and preprocessing.
+
+    import torch
+    import torch.nn as nn
+    import pickle
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    import re
+    import string
+
+Load the TF-IDF Vectorizer:
+
+Load the pre-saved TF-IDF vectorizer to transform new input reviews consistently with the training data.
+
+    with open('/PATH/TO/YOUR/VECTORIZER', 'rb') as f:
+        vectorizer = pickle.load(f)
+
+Define the LSTM Model Class:
+
+The model architecture should match the one used during training to ensure compatibility.
+
+    class SentimentLSTM(nn.Module):
+        def __init__(self, input_size, hidden_size, num_classes):
+            super(SentimentLSTM, self).__init__()
+            self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+            self.fc = nn.Linear(hidden_size, num_classes)
+
+        def forward(self, x):
+            h0 = torch.zeros(1, x.size(0), 100)
+            c0 = torch.zeros(1, x.size(0), 100)
+            out, _ = self.lstm(x.unsqueeze(1), (h0, c0))
+            out = self.fc(out[:, -1, :])
+            return out
+
+
+Initialize the Model:
+
+Define the model with the same parameters used during training.
+Load the saved model state to ensure it can make accurate predictions.
+
+    input_size = 5000  # Size of TF-IDF vectors
+    hidden_size = 100
+    num_classes = 2
+    model = SentimentLSTM(input_size, hidden_size, num_classes)
+
+    model_path = 'PATH/TO/YOUR/MODEL'
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+
+Function to Clean and Preprocess Input Review:
+
+This function prepares the user-provided review by removing HTML tags, converting text to lowercase, and stripping out punctuation and digits.
+
+    def clean_review(text):
+        text = re.sub(r'<.*?>', '', text)  # Remove HTML tags
+        text = text.lower()  # Convert to lowercase
+        text = re.sub(f"[{string.punctuation}\d]", "", text)  # Remove punctuation and digits
+        tokens = text.split()  # Tokenize
+        return " ".join(tokens)
+
+Function to Classify User Input Review:
+
+This function takes a user-provided review, cleans it, transforms it into a TF-IDF vector, converts it to a tensor, and uses the model to predict sentiment.
+
+    def classify_review():
+        user_review = input("Enter a movie review: ")
+        cleaned_review = clean_review(user_review)
+        review_vector = vectorizer.transform([cleaned_review]).toarray()
+        review_tensor = torch.tensor(review_vector, dtype=torch.float32)
+
+        with torch.no_grad():
+            output = model(review_tensor)
+            _, predicted = torch.max(output, 1)
+            sentiment = "You enjoyed the movie." if predicted.item() == 1 else "You did not like the movie."
+            print(f"Sentiment: {sentiment}")
+
+Start the Classification Process:
+
+Initiate the function to classify the input review and display the sentiment result.
+
+    classify_review()
+
 
 
