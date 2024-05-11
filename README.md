@@ -4,6 +4,57 @@ This project analyzes the sentiment of film reviews from the IMDB dataset. Using
 
 The dataset can be found on Kaggle https://www.kaggle.com/datasets/vishakhdapat/imdb-movie-reviews. 
 
+In this project, model paths refer to the locations where trained models are saved and loaded. Here's a simple explanation for beginners:
+
+Training and Saving the Model:
+After training the model with a dataset, we want to keep the trained model's parameters for future predictions.
+To do this, we save the model's parameters (also known as the model's state dictionary) to a file using torch.save().
+This file is placed in a location of your choice, known as the model path. For instance, we might save it as sentiment_model.pth at a particular directory like /path/to/your/model.
+
+Loading and Using the Model:
+Once saved, we can load the model later for making predictions or further training.
+First, we re-create the model architecture with the same parameters used during training.
+Then, we use torch.load() to read the saved parameters from the model path and apply them to the newly created model object using .load_state_dict().
+The model is now ready for real-time predictions using new data, ensuring consistent behavior with the training phase.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Key Points for Beginners:
+
+Understanding TF-IDF Vectorizer:
+What It Does: Converts text data into numerical vectors by calculating the importance of words (terms) relative to the document and the entire dataset.
+Why It's Used: Helps the model understand and process text data by transforming words into numbers.
+
+Using PyTorch Tensors:
+What They Are: Multi-dimensional arrays that store data for processing in neural networks.
+Why They're Important: Tensors are the fundamental building blocks in PyTorch, allowing efficient data handling and computation.
+
+DataLoader Utility:
+What It Does: Handles data in batches, making it more manageable and faster for the model to process during training.
+Why It's Used: Improves training efficiency by breaking the data into smaller, sequential chunks.
+
+LSTM Model Architecture:
+What It Is: A type of Recurrent Neural Network (RNN) that is particularly good at learning from sequences, like sentences or time series data.
+Why It's Used: Captures the dependencies and relationships in sequential data, which is crucial for understanding the context in text.
+
+Saving and Loading Models:
+Saving: torch.save() saves the model’s parameters to a file.
+Loading: torch.load() loads the parameters into a model architecture for reuse.
+Why This Matters: Ensures you don’t have to retrain the model from scratch every time you want to use it.
+
+Clean Review Function:
+What It Does: Processes and prepares text data by removing unnecessary elements (like HTML tags, punctuation) and converting text to a standard form.
+Why It's Important: Standardizes the input data, making it easier for the model to learn and make accurate predictions.
+
+Tips for Beginners:
+
+Start Simple: Focus on understanding each part of the process step by step.
+Read Documentation: Refer to library documentation (like PyTorch or Scikit-learn) for detailed explanations and examples.
+Experiment: Try modifying parts of the script to see how changes affect the outcome.
+Ask for Help: You can reach me on discord @sleepytimebaby. 
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
 Step 1: Preprocessing the IMDB Dataset
 
 In this step, we clean, lemmatize, and split the dataset into training and testing sets for later use in the sentiment analysis model.
@@ -86,6 +137,7 @@ Save the cleaned and split data into CSV files for model training and testing.
     train_data.to_csv('IMDB_train_preprocessed.csv', index=False)
     test_data.to_csv('IMDB_test_preprocessed.csv', index=False)
 
+--------------------------------------------------------------------------------------------------------------------------------------------
 
 Step 2: Feature Extraction and Model Training
 
@@ -213,6 +265,8 @@ Save the Trained Model:
 Save the trained model's state dictionary for later use.
 
     torch.save(model.state_dict(), '/PATH/TO/YOUR/MODEL')
+
+--------------------------------------------------------------------------------------------------------------------------------------------
 
 Step 3: Model Initialization and Real-Time Classification
 
